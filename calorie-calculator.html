@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dark Ledger">
+<meta name="theme-color" content="#08070c">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<title>The Dark Ledger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #08070c;
+    --surface: #0f0e16;
+    --surface2: #16141f;
+    --surface3: #1e1b2a;
+    --border: #2a2540;
+    --border-gold: #3d2e1a;
+    --text: #ede9e0;
+    --text-dim: #918a9e;
+    --gold: #c4a265;
+    --gold-glow: rgba(196, 162, 101, 0.25);
+    --gold-dim: #8a6f3e;
+    --crimson: #8b2040;
+    --crimson-glow: rgba(139, 32, 64, 0.3);
+    --green: #5a8a5e;
+    --green-bright: #7ab87e;
+    --green-glow: rgba(90, 138, 94, 0.25);
+    --red: #a83242;
+    --purple: #6b4c8a;
+    --purple-glow: rgba(107, 76, 138, 0.2);
+    --blue: #4a6a8a;
+    --blue-water: #5b8aaf;
+    --blue-glow: rgba(91, 138, 175, 0.25);
+    --parchment: #1a1714;
+    --radius: 8px;
+  }
+  body {
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 21px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  #bg-canvas {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+  #root { max-width: 520px; margin: 0 auto; padding: 16px; padding-bottom: 100px; position: relative; z-index: 1; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
+  .fade-in { animation: fadeIn 0.3s ease; }
+  .slide-up { animation: slideUp 0.4s ease; }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  h1, h2, h3, .heading { font-family: 'Cinzel', serif; letter-spacing: 1px; }
+
+  .card {
+    background: rgba(15, 14, 22, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+    opacity: 0.3;
+  }
+  .card-glow {
+    box-shadow: 0 0 40px rgba(107, 76, 138, 0.08), 0 4px 20px rgba(0,0,0,0.4);
+    border-color: var(--border-gold);
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'Crimson Text', Georgia, serif;
+    font-size: 20px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus, select:focus {
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 0 3px var(--gold-glow);
+  }
+  input::placeholder { color: var(--text-dim); font-style: italic; }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236e6880' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  select option { background: var(--surface2); color: var(--text); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 12px 20px;
+    border: none; border-radius: 6px;
+    font-family: 'Cinzel', serif; font-size: 17px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--crimson), #6b2040);
+    color: var(--text);
+    border: 1px solid rgba(196, 162, 101, 0.2);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px var(--crimson-glow); }
+  .btn-ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border); font-family: 'Crimson Text', serif; text-transform: none; letter-spacing: 0; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--gold-dim); }
+  .btn-water {
+    background: linear-gradient(135deg, rgba(91,138,175,0.15), rgba(91,138,175,0.05));
+    color: var(--blue-water); border: 1px solid rgba(91,138,175,0.3);
+    font-family: 'Crimson Text', serif; text-transform: none; letter-spacing: 0;
+  }
+  .btn-water:hover { background: rgba(91,138,175,0.2); }
+  .btn-sm { padding: 6px 12px; font-size: 15px; }
+  .btn-block { width: 100%; }
+
+  .label { font-family: 'Cinzel', serif; font-size: 16px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; display: block; }
+
+  .ring-bg { stroke: var(--surface3); }
+  .ring-fill { transition: stroke-dashoffset 0.6s ease; }
+
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(15, 14, 22, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: center;
+    padding: 8px 0; padding-bottom: max(8px, env(safe-area-inset-bottom));
+    z-index: 100;
+  }
+  .nav::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent); opacity: 0.3;
+  }
+  .nav-item {
+    flex: 1; max-width: 130px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 8px 16px;
+    background: none; border: none;
+    color: var(--text-dim); font-size: 16px; font-weight: 600;
+    cursor: pointer; transition: color 0.2s;
+    font-family: 'Cinzel', serif; letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .nav-item.active { color: var(--gold); }
+  .nav-item svg { width: 24px; height: 24px; }
+
+  .food-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px;
+    background: rgba(22, 20, 31, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    transition: all 0.2s;
+    animation: fadeIn 0.3s ease;
+  }
+  .food-item:hover { border-color: var(--border-gold); }
+
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: flex-end; justify-content: center;
+    z-index: 200;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--gold-dim);
+    border-radius: 12px 12px 0 0;
+    padding: 24px;
+    width: 100%; max-width: 520px;
+    max-height: 85vh; overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .flex-between { display: flex; justify-content: space-between; align-items: center; }
+  .flex-center { display: flex; align-items: center; justify-content: center; }
+  .mt-8 { margin-top: 8px; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+  .mb-12 { margin-bottom: 12px; }
+  .mb-16 { margin-bottom: 16px; }
+
+  .macro-bar { height: 7px; border-radius: 4px; background: var(--surface3); overflow: hidden; }
+  .macro-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+  .quick-item {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 12px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Crimson Text', serif;
+    color: var(--text);
+    font-size: 16px;
+    text-align: center;
+  }
+  .quick-item:hover { border-color: var(--gold-dim); background: var(--surface3); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .quick-emoji { font-size: 30px; }
+  .quick-cal { color: var(--gold); font-weight: 700; font-size: 19px; font-family: 'Cinzel', serif; }
+
+  .toggle-group { display: flex; background: var(--surface2); border-radius: 6px; padding: 3px; border: 1px solid var(--border); }
+  .toggle-btn {
+    flex: 1; padding: 8px 12px;
+    border: none; border-radius: 4px;
+    font-family: 'Crimson Text', serif; font-size: 19px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    background: transparent; color: var(--text-dim);
+  }
+  .toggle-btn.active { background: var(--crimson); color: var(--text); }
+
+  .date-nav {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 12px; margin-bottom: 16px;
+  }
+  .date-nav button {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text-dim); width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.2s; font-size: 20px;
+  }
+  .date-nav button:hover { border-color: var(--gold-dim); color: var(--gold); }
+  .date-text { font-family: 'Cinzel', serif; font-size: 18px; font-weight: 600; min-width: 160px; text-align: center; letter-spacing: 1px; color: var(--gold); }
+
+  .search-wrap { position: relative; }
+  .search-wrap input { padding-left: 38px; }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+  .search-results {
+    max-height: 280px; overflow-y: auto;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    margin-top: 8px;
+  }
+  .search-result {
+    padding: 12px 14px;
+    cursor: pointer; transition: background 0.15s;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .search-result:last-child { border-bottom: none; }
+  .search-result:hover { background: var(--surface3); }
+
+  .empty { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+  .empty-icon { font-size: 44px; margin-bottom: 12px; opacity: 0.5; }
+
+  .link-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: 6px;
+    background: rgba(196, 162, 101, 0.1);
+    color: var(--gold); cursor: pointer;
+    transition: all 0.2s; text-decoration: none;
+    flex-shrink: 0;
+  }
+  .link-icon:hover { background: rgba(196, 162, 101, 0.2); transform: scale(1.1); }
+
+  .streak-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 12px; border-radius: 20px;
+    background: linear-gradient(135deg, rgba(196,162,101,0.12), rgba(139,32,64,0.12));
+    border: 1px solid rgba(196,162,101,0.2);
+    font-family: 'Cinzel', serif;
+    font-size: 15px; font-weight: 600; color: var(--gold);
+    letter-spacing: 0.5px;
+  }
+
+  /* Water tracker */
+  .water-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+  .water-drop {
+    width: 42px; height: 42px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer; transition: all 0.25s;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .water-drop.filled {
+    background: linear-gradient(180deg, rgba(91,138,175,0.4), rgba(91,138,175,0.15));
+    border-color: var(--blue-water);
+    box-shadow: 0 0 10px var(--blue-glow);
+  }
+  .water-drop:hover { transform: scale(1.1); }
+
+  /* Divider */
+  .divider {
+    height: 1px; border: none;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 16px 0;
+  }
+
+  /* Ornament */
+  .ornament {
+    text-align: center; color: var(--gold-dim); font-size: 18px;
+    letter-spacing: 8px; margin: 8px 0; opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+// ─── Helpers ───
+const dateKey = (d) => d.toISOString().split('T')[0];
+const today = () => dateKey(new Date());
+const formatDate = (str) => {
+  const d = new Date(str + 'T12:00:00');
+  const t = new Date();
+  const todayStr = dateKey(t);
+  const yest = new Date(t); yest.setDate(yest.getDate() - 1);
+  if (str === todayStr) return 'This Day';
+  if (str === dateKey(yest)) return 'The Day Prior';
+  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+// ─── Storage ───
+const load = (key, fallback) => {
+  try { const d = localStorage.getItem(key); return d ? JSON.parse(d) : fallback; }
+  catch { return fallback; }
+};
+const save = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+// ─── Profile ───
+const defaultProfile = { age: 30, weight: 180, height: 70, sex: 'male', activity: 1.55, goal: 'maintain', customTarget: 2328, proteinTarget: 180, waterTarget: 8 };
+const goalMultipliers = { lose: -500, maintain: 0, gain: 300 };
+const activityLabels = { 1.2: 'Sedentary', 1.375: 'Light', 1.55: 'Moderate', 1.725: 'Very Active', 1.9: 'Athlete' };
+
+const calcBMR = (p) => {
+  if (p.sex === 'male') return 10 * (p.weight / 2.205) + 6.25 * (p.height * 2.54) - 5 * p.age + 5;
+  return 10 * (p.weight / 2.205) + 6.25 * (p.height * 2.54) - 5 * p.age - 161;
+};
+const calcTDEE = (p) => Math.round(calcBMR(p) * p.activity);
+const calcTarget = (p) => p.customTarget ? p.customTarget : Math.round(calcTDEE(p) + goalMultipliers[p.goal]);
+
+// ─── Quick Foods (USDA verified values) ───
+const quickFoods = [
+  { emoji: '🥚', name: 'Egg (large)', cal: 72, protein: 6, link: 'https://fdc.nal.usda.gov/food-details/748967/nutrients' },
+  { emoji: '🍗', name: 'Chicken Breast (4oz)', cal: 130, protein: 26, link: 'https://fdc.nal.usda.gov/food-details/331960/nutrients' },
+  { emoji: '🥩', name: 'Ground Beef 80/20 (4oz)', cal: 287, protein: 19, link: 'https://fdc.nal.usda.gov/food-details/174036/nutrients' },
+  { emoji: '🐟', name: 'Salmon (4oz)', cal: 234, protein: 25, link: 'https://fdc.nal.usda.gov/food-details/175168/nutrients' },
+  { emoji: '🦐', name: 'Shrimp (4oz)', cal: 120, protein: 23, link: 'https://fdc.nal.usda.gov/food-details/175180/nutrients' },
+  { emoji: '🥓', name: 'Bacon (3 slices)', cal: 161, protein: 12, link: 'https://fdc.nal.usda.gov/food-details/174577/nutrients' },
+  { emoji: '🍚', name: 'Rice, white (1 cup)', cal: 206, protein: 4, link: 'https://fdc.nal.usda.gov/food-details/169756/nutrients' },
+  { emoji: '🍞', name: 'Bread (1 slice)', cal: 79, protein: 3, link: 'https://fdc.nal.usda.gov/food-details/172686/nutrients' },
+  { emoji: '🥑', name: 'Avocado (whole)', cal: 240, protein: 3, link: 'https://fdc.nal.usda.gov/food-details/171706/nutrients' },
+  { emoji: '🍌', name: 'Banana', cal: 105, protein: 1, link: 'https://fdc.nal.usda.gov/food-details/173944/nutrients' },
+  { emoji: '🍎', name: 'Apple', cal: 95, protein: 0, link: 'https://fdc.nal.usda.gov/food-details/171688/nutrients' },
+  { emoji: '🥦', name: 'Broccoli (1 cup)', cal: 55, protein: 4, link: 'https://fdc.nal.usda.gov/food-details/170379/nutrients' },
+  { emoji: '🧀', name: 'Cheddar (1oz)', cal: 113, protein: 7, link: 'https://fdc.nal.usda.gov/food-details/173414/nutrients' },
+  { emoji: '🥛', name: 'Whole Milk (1 cup)', cal: 149, protein: 8, link: 'https://fdc.nal.usda.gov/food-details/171265/nutrients' },
+  { emoji: '🥜', name: 'Almonds (1oz)', cal: 164, protein: 6, link: 'https://fdc.nal.usda.gov/food-details/170567/nutrients' },
+  { emoji: '🥤', name: 'Protein Shake', cal: 160, protein: 30, link: 'https://fdc.nal.usda.gov/food-details/2517325/nutrients' },
+  { emoji: '🍳', name: 'Oatmeal (1 cup)', cal: 154, protein: 5, link: 'https://fdc.nal.usda.gov/food-details/173904/nutrients' },
+  { emoji: '🫘', name: 'Black Beans (1/2 cup)', cal: 114, protein: 8, link: 'https://fdc.nal.usda.gov/food-details/175223/nutrients' },
+  { emoji: '🍕', name: 'Pizza (1 slice)', cal: 285, protein: 12, link: 'https://fdc.nal.usda.gov/food-details/174735/nutrients' },
+  { emoji: '🌮', name: 'Taco (beef)', cal: 210, protein: 9, link: 'https://fdc.nal.usda.gov/food-details/170693/nutrients' },
+  { emoji: '🍔', name: 'Cheeseburger', cal: 535, protein: 28, link: 'https://fdc.nal.usda.gov/food-details/170720/nutrients' },
+  { emoji: '🥗', name: 'Side Salad', cal: 50, protein: 2, link: 'https://fdc.nal.usda.gov/food-details/168539/nutrients' },
+  { emoji: '🍝', name: 'Pasta (1 cup cooked)', cal: 220, protein: 8, link: 'https://fdc.nal.usda.gov/food-details/169738/nutrients' },
+  { emoji: '☕', name: 'Coffee (black)', cal: 5, protein: 0, link: 'https://fdc.nal.usda.gov/food-details/171890/nutrients' },
+];
+
+// ─── Daily Quotes ───
+const dailyQuotes = [
+  { text: "I became insane, with long intervals of horrible sanity.", author: "Edgar Allan Poe" },
+  { text: "All that we see or seem is but a dream within a dream.", author: "Edgar Allan Poe" },
+  { text: "Deep into that darkness peering, long I stood there wondering, fearing.", author: "Edgar Allan Poe" },
+  { text: "I have loved the stars too fondly to be fearful of the night.", author: "Edgar Allan Poe" },
+  { text: "Words have no power to impress the mind without the exquisite horror of their reality.", author: "Edgar Allan Poe" },
+  { text: "There is no exquisite beauty without some strangeness in the proportion.", author: "Edgar Allan Poe" },
+  { text: "The scariest monsters are the ones that lurk within our souls.", author: "Edgar Allan Poe" },
+  { text: "Not all those who wander are lost.", author: "J.R.R. Tolkien" },
+  { text: "Even the smallest person can change the course of the future.", author: "J.R.R. Tolkien" },
+  { text: "All we have to decide is what to do with the time that is given us.", author: "J.R.R. Tolkien" },
+  { text: "There is some good in this world, and it is worth fighting for.", author: "J.R.R. Tolkien" },
+  { text: "The world is indeed full of peril, and in it there are many dark places.", author: "J.R.R. Tolkien" },
+  { text: "Faithless is he that says farewell when the road darkens.", author: "J.R.R. Tolkien" },
+  { text: "It is not despair, for despair is only for those who see the end beyond all doubt.", author: "J.R.R. Tolkien" },
+  { text: "A single dream is more powerful than a thousand realities.", author: "J.R.R. Tolkien" },
+  { text: "Deeds will not be less valiant because they are unpraised.", author: "J.R.R. Tolkien" },
+  { text: "The treacherous are ever distrustful.", author: "J.R.R. Tolkien" },
+  { text: "I will not say: do not weep; for not all tears are an evil.", author: "J.R.R. Tolkien" },
+  { text: "Sleep, those little slices of death — how I loathe them.", author: "Edgar Allan Poe" },
+  { text: "We loved with a love that was more than love.", author: "Edgar Allan Poe" },
+  { text: "Years of love have been forgot, in the hatred of a minute.", author: "Edgar Allan Poe" },
+  { text: "I was never really insane except upon occasions when my heart was touched.", author: "Edgar Allan Poe" },
+  { text: "The quest stands upon the edge of a knife.", author: "J.R.R. Tolkien" },
+  { text: "Where there's life there's hope, and need of vittles.", author: "J.R.R. Tolkien" },
+  { text: "Courage is found in unlikely places.", author: "J.R.R. Tolkien" },
+  { text: "Little by little, one travels far.", author: "J.R.R. Tolkien" },
+  { text: "Home is behind, the world ahead, and there are many paths to tread.", author: "J.R.R. Tolkien" },
+  { text: "The burned hand teaches best. After that, advice about fire goes to the heart.", author: "J.R.R. Tolkien" },
+  { text: "In the depth of winter, I found there was, within me, an invincible summer.", author: "Albert Camus" },
+  { text: "He who fights with monsters must take care lest he thereby become a monster.", author: "Nietzsche" },
+  { text: "To live is the rarest thing in the world. Most people exist, that is all.", author: "Oscar Wilde" },
+];
+const getDailyQuote = () => {
+  const d = new Date();
+  const dayOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
+  return dailyQuotes[dayOfYear % dailyQuotes.length];
+};
+
+// ─── SVG Icons ───
+const Icons = {
+  flame: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c2-2.96 0-7-1-8 0 3.038-1.773 4.741-3 6-1.226 1.26-2 3.24-2 5a6 6 0 1 0 12 0c0-1.532-1.056-3.94-2-5-1.786 3-2.791 3-4 2z"/></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  scroll: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  link: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>,
+  edit: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  trash: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  left: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>,
+  right: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>,
+  search: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  x: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+};
+
+// ─── Calorie Ring ───
+function CalRing({ consumed, target }) {
+  const pct = Math.min(consumed / target, 1.3);
+  const r = 70, circ = 2 * Math.PI * r;
+  const offset = circ - pct * circ;
+  const over = consumed > target;
+  const remaining = target - consumed;
+  const color = over ? 'var(--red)' : 'var(--gold)';
+  return (
+    <div className="flex-center" style={{ flexDirection: 'column', gap: 8, padding: '8px 0' }}>
+      <svg width="170" height="170" style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx="85" cy="85" r={r} fill="none" strokeWidth="8" className="ring-bg"/>
+        <circle cx="85" cy="85" r={r} fill="none" strokeWidth="8" stroke={color} strokeLinecap="round"
+          className="ring-fill" strokeDasharray={circ} strokeDashoffset={Math.max(offset, 0)}
+          style={{ filter: `drop-shadow(0 0 10px ${over ? 'var(--crimson-glow)' : 'var(--gold-glow)'})` }}/>
+      </svg>
+      <div style={{ position: 'absolute', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'Cinzel, serif', fontSize: 40, fontWeight: 800, lineHeight: 1, color }}>{consumed}</div>
+        <div style={{ marginTop: 6 }}>
+          <span style={{ fontFamily: 'Cinzel, serif', fontSize: 22, fontWeight: 700, color: over ? 'var(--red)' : 'var(--gold)' }}>
+            {Math.abs(remaining)}
+          </span>
+          <span style={{ fontSize: 17, color: 'var(--text)', marginLeft: 4 }}>
+            {over ? 'over' : 'left'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Protein Bar ───
+function ProteinBar({ value, max }) {
+  const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+  return (
+    <div>
+      <div className="flex-between" style={{ marginBottom: 6 }}>
+        <span style={{ fontFamily: 'Cinzel, serif', fontSize: 17, color: 'var(--gold)', letterSpacing: '1px', textTransform: 'uppercase' }}>Protein</span>
+        <span style={{ fontSize: 21, fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+          {value}g <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 18 }}>/ {max}g</span>
+        </span>
+      </div>
+      <div className="macro-bar">
+        <div className="macro-fill" style={{ width: `${pct}%`, background: 'linear-gradient(90deg, var(--crimson), var(--gold-dim))' }}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── Water Tracker ───
+function WaterTracker({ glasses, target, onToggle }) {
+  return (
+    <div>
+      <div className="flex-between mb-12">
+        <span style={{ fontFamily: 'Cinzel, serif', fontSize: 17, color: 'var(--gold)', letterSpacing: '1px', textTransform: 'uppercase' }}>Waters of Life</span>
+        <span style={{ fontSize: 21, fontWeight: 700, fontFamily: 'Cinzel, serif' }}>
+          {glasses} <span style={{ color: 'var(--text-dim)', fontWeight: 400, fontSize: 18 }}>/ {target} glasses</span>
+        </span>
+      </div>
+      <div className="water-grid">
+        {Array.from({ length: target }, (_, i) => (
+          <button key={i} className={`water-drop ${i < glasses ? 'filled' : ''}`} onClick={() => onToggle(i)} title={`Glass ${i + 1}`}>
+            {i < glasses ? '💧' : ''}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Food Modal ───
+function AddFoodModal({ onClose, onAdd }) {
+  const [tab, setTab] = useState('quick');
+  const [search, setSearch] = useState('');
+  const [custom, setCustom] = useState({ name: '', cal: '', protein: '', link: '' });
+  const [apiResults, setApiResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  useEffect(() => { if (tab === 'search' && searchRef.current) searchRef.current.focus(); }, [tab]);
+
+  // USDA FoodData Central API (free, no key required for demo)
+  const searchAPI = useCallback((q) => {
+    if (!q || q.length < 2) { setApiResults([]); return; }
+    setSearching(true);
+    fetch(`https://api.nal.usda.gov/fdc/v1/foods/search?api_key=DEMO_KEY&query=${encodeURIComponent(q)}&pageSize=12&dataType=Foundation,SR%20Legacy`)
+      .then(r => r.json())
+      .then(data => {
+        const results = (data.foods || []).map(f => {
+          const get = (name) => {
+            const n = (f.foodNutrients || []).find(n => n.nutrientName === name);
+            return n ? Math.round(n.value) : 0;
+          };
+          return {
+            name: f.description ? f.description.slice(0, 50) : 'Unknown',
+            cal: get('Energy'),
+            protein: get('Protein'),
+            link: `https://fdc.nal.usda.gov/food-details/${f.fdcId}/nutrients`,
+            per100g: true,
+          };
+        }).filter(r => r.cal > 0);
+        setApiResults(results);
+        setSearching(false);
+      })
+      .catch(() => { setSearching(false); setApiResults([]); });
+  }, []);
+
+  const onSearchChange = (val) => {
+    setSearch(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchAPI(val), 500);
+  };
+
+  const filteredQuick = quickFoods.filter(f => f.name.toLowerCase().includes(search.toLowerCase()));
+
+  const addItem = (f) => {
+    onAdd({
+      id: uid(), name: f.name, cal: f.cal, protein: f.protein || 0,
+      link: f.link || '', per100g: f.per100g || false,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+    onClose();
+  };
+
+  const addCustom = () => {
+    if (!custom.name || !custom.cal) return;
+    onAdd({
+      id: uid(), name: custom.name, cal: parseInt(custom.cal) || 0,
+      protein: parseInt(custom.protein) || 0, link: custom.link || '',
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+    onClose();
+  };
+
+  return (
+    <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="flex-between mb-16">
+          <h3 className="heading" style={{ fontSize: 22 }}>Record Thy Feast</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>{Icons.x}</button>
+        </div>
+
+        <div className="toggle-group mb-16">
+          <button className={`toggle-btn ${tab === 'quick' ? 'active' : ''}`} onClick={() => setTab('quick')}>Swift Pick</button>
+          <button className={`toggle-btn ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>USDA Search</button>
+          <button className={`toggle-btn ${tab === 'custom' ? 'active' : ''}`} onClick={() => setTab('custom')}>By Hand</button>
+        </div>
+
+        {tab === 'quick' && (
+          <div className="fade-in">
+            <div className="search-wrap mb-12">
+              <span className="search-icon">{Icons.search}</span>
+              <input placeholder="Filter the provisions..." value={search} onChange={e => setSearch(e.target.value)}/>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {filteredQuick.map(f => (
+                <button key={f.name} className="quick-item" onClick={() => addItem(f)}>
+                  <span className="quick-emoji">{f.emoji}</span>
+                  <span style={{ fontSize: 17, lineHeight: 1.2 }}>{f.name}</span>
+                  <span className="quick-cal">{f.cal}</span>
+                  <span style={{ fontSize: 16, color: 'var(--text-dim)' }}>{f.protein}g protein</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === 'search' && (
+          <div className="fade-in">
+            <div className="search-wrap mb-12">
+              <span className="search-icon">{Icons.search}</span>
+              <input ref={searchRef} placeholder="Search the USDA archives..." value={search} onChange={e => onSearchChange(e.target.value)}/>
+            </div>
+            {searching && <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-dim)', fontStyle: 'italic' }}>Consulting the archives...</div>}
+            {!searching && apiResults.length > 0 && (
+              <div className="search-results">
+                {apiResults.map((r, i) => (
+                  <div key={i} className="search-result" onClick={() => addItem(r)}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 18 }}>{r.name}</div>
+                      <div style={{ fontSize: 16, color: 'var(--text-dim)', marginTop: 2 }}>
+                        {r.protein}g protein {r.per100g ? <span style={{ fontStyle: 'italic' }}>(per 100g)</span> : ''}
+                      </div>
+                    </div>
+                    <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 20, fontFamily: 'Cinzel, serif' }}>{r.cal}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!searching && search.length >= 2 && apiResults.length === 0 && (
+              <div className="empty"><div style={{ fontSize: 18, fontStyle: 'italic' }}>The archives yield nothing. Try another query, or inscribe by hand.</div></div>
+            )}
+            <div style={{ fontSize: 15, color: 'var(--text-dim)', textAlign: 'center', marginTop: 12, fontStyle: 'italic' }}>
+              Data from the <a href="https://fdc.nal.usda.gov/" target="_blank" style={{ color: 'var(--gold-dim)' }}>USDA FoodData Central</a>
+            </div>
+          </div>
+        )}
+
+        {tab === 'custom' && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label className="label">Name of Sustenance *</label>
+              <input placeholder="e.g., Grilled Chicken Salad" value={custom.name} onChange={e => setCustom({...custom, name: e.target.value})}/>
+            </div>
+            <div className="grid-2">
+              <div>
+                <label className="label">Calories *</label>
+                <input type="number" placeholder="kcal" value={custom.cal} onChange={e => setCustom({...custom, cal: e.target.value})}/>
+              </div>
+              <div>
+                <label className="label">Protein (g)</label>
+                <input type="number" placeholder="0" value={custom.protein} onChange={e => setCustom({...custom, protein: e.target.value})}/>
+              </div>
+            </div>
+            <div>
+              <label className="label">Link (optional)</label>
+              <input placeholder="https://..." value={custom.link} onChange={e => setCustom({...custom, link: e.target.value})}/>
+            </div>
+            <button className="btn btn-primary btn-block mt-8" onClick={addCustom}>Inscribe</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit Food Modal ───
+function EditFoodModal({ food, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: food.name, cal: String(food.cal),
+    protein: String(food.protein), link: food.link || '',
+  });
+  const handleSave = () => {
+    if (!form.name || !form.cal) return;
+    onSave({ ...food, name: form.name, cal: parseInt(form.cal) || 0, protein: parseInt(form.protein) || 0, link: form.link });
+    onClose();
+  };
+  return (
+    <div className="overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="flex-between mb-16">
+          <h3 className="heading" style={{ fontSize: 22 }}>Amend the Record</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}>{Icons.x}</button>
+        </div>
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label className="label">Name</label>
+            <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}/>
+          </div>
+          <div className="grid-2">
+            <div>
+              <label className="label">Calories</label>
+              <input type="number" value={form.cal} onChange={e => setForm({...form, cal: e.target.value})}/>
+            </div>
+            <div>
+              <label className="label">Protein (g)</label>
+              <input type="number" value={form.protein} onChange={e => setForm({...form, protein: e.target.value})}/>
+            </div>
+          </div>
+          <div>
+            <label className="label">Link</label>
+            <input placeholder="https://..." value={form.link} onChange={e => setForm({...form, link: e.target.value})}/>
+          </div>
+          <button className="btn btn-primary btn-block mt-8" onClick={handleSave}>Seal the Amendment</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Settings ───
+function SettingsPanel({ profile, setProfile }) {
+  const tdee = calcTDEE(profile);
+  const target = calcTarget(profile);
+  const update = (k, v) => setProfile(p => ({ ...p, [k]: v }));
+
+  return (
+    <div className="slide-up">
+      <h2 className="heading" style={{ fontSize: 24, marginBottom: 16 }}>The Council Chamber</h2>
+
+      <div className="card card-glow mb-16">
+        <div className="flex-between mb-12">
+          <span style={{ fontSize: 18, fontWeight: 600 }}>Daily Calorie Allotment</span>
+          <span style={{ fontFamily: 'Cinzel, serif', fontSize: 26, fontWeight: 800, color: 'var(--gold)' }}>{target}</span>
+        </div>
+        <label className="label">Decree Method</label>
+        <div className="toggle-group mb-12">
+          <button className={`toggle-btn ${profile.customTarget ? 'active' : ''}`} onClick={() => update('customTarget', profile.customTarget || calcTDEE(profile))}>By My Hand</button>
+          <button className={`toggle-btn ${!profile.customTarget ? 'active' : ''}`} onClick={() => update('customTarget', 0)}>The Formula</button>
+        </div>
+        {profile.customTarget ? (
+          <div>
+            <label className="label">Your Calorie Limit</label>
+            <input type="number" value={profile.customTarget} onChange={e => update('customTarget', parseInt(e.target.value) || 0)} style={{ fontSize: 22, fontWeight: 700, textAlign: 'center', fontFamily: 'Cinzel, serif' }}/>
+          </div>
+        ) : (
+          <div style={{ fontSize: 17, color: 'var(--text-dim)', fontStyle: 'italic' }}>
+            TDEE: {tdee} kcal — adjusted by goal ({profile.goal === 'lose' ? '−500' : profile.goal === 'gain' ? '+300' : '±0'})
+          </div>
+        )}
+      </div>
+
+      <div className="card mb-16">
+        <div className="grid-2" style={{ gap: 14 }}>
+          <div>
+            <label className="label">Protein Target (g)</label>
+            <input type="number" value={profile.proteinTarget} onChange={e => update('proteinTarget', parseInt(e.target.value) || 0)}/>
+          </div>
+          <div>
+            <label className="label">Water Target (glasses)</label>
+            <input type="number" value={profile.waterTarget} onChange={e => update('waterTarget', parseInt(e.target.value) || 0)}/>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ fontFamily: 'Cinzel, serif', fontSize: 16, color: 'var(--gold-dim)', letterSpacing: '1px' }}>BODY STATS</div>
+        <div className="grid-2">
+          <div><label className="label">Age</label><input type="number" value={profile.age} onChange={e => update('age', +e.target.value)}/></div>
+          <div><label className="label">Sex</label>
+            <select value={profile.sex} onChange={e => update('sex', e.target.value)}>
+              <option value="male">Male</option><option value="female">Female</option>
+            </select>
+          </div>
+        </div>
+        <div className="grid-2">
+          <div><label className="label">Weight (lbs)</label><input type="number" value={profile.weight} onChange={e => update('weight', +e.target.value)}/></div>
+          <div><label className="label">Height (inches)</label><input type="number" value={profile.height} onChange={e => update('height', +e.target.value)}/></div>
+        </div>
+        <div><label className="label">Activity Level</label>
+          <select value={profile.activity} onChange={e => update('activity', +e.target.value)}>
+            {Object.entries(activityLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </div>
+        <div><label className="label">Goal</label>
+          <div className="toggle-group">
+            {['lose', 'maintain', 'gain'].map(g => (
+              <button key={g} className={`toggle-btn ${profile.goal === g ? 'active' : ''}`} onClick={() => update('goal', g)}>
+                {g === 'lose' ? 'Wither' : g === 'maintain' ? 'Endure' : 'Forge'}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="card mt-16">
+        <button className="btn btn-ghost btn-block" onClick={() => {
+          if (confirm('This will erase all data. The darkness consumes all. Are you certain?')) {
+            localStorage.removeItem('dl_profile');
+            localStorage.removeItem('dl_logs');
+            localStorage.removeItem('dl_water');
+            window.location.reload();
+          }
+        }}>
+          Cast All Into Shadow (Reset Data)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ───
+function App() {
+  const [page, setPage] = useState('home');
+  const [profile, setProfile] = useState(() => load('dl_profile', defaultProfile));
+  const [logs, setLogs] = useState(() => load('dl_logs', {}));
+  const [water, setWater] = useState(() => load('dl_water', {}));
+  const [selectedDate, setSelectedDate] = useState(today());
+  const [showAdd, setShowAdd] = useState(false);
+  const [editingFood, setEditingFood] = useState(null);
+
+  useEffect(() => save('dl_profile', profile), [profile]);
+  useEffect(() => save('dl_logs', logs), [logs]);
+  useEffect(() => save('dl_water', water), [water]);
+
+  const target = calcTarget(profile);
+  const dayLog = logs[selectedDate] || [];
+  const dayWater = water[selectedDate] || 0;
+  const totals = useMemo(() => dayLog.reduce((acc, f) => ({
+    cal: acc.cal + f.cal, protein: acc.protein + (f.protein || 0)
+  }), { cal: 0, protein: 0 }), [dayLog]);
+
+  const addFood = (food) => setLogs(prev => ({ ...prev, [selectedDate]: [...(prev[selectedDate] || []), food] }));
+  const removeFood = (id) => setLogs(prev => ({ ...prev, [selectedDate]: (prev[selectedDate] || []).filter(f => f.id !== id) }));
+  const editFood = (updated) => setLogs(prev => ({ ...prev, [selectedDate]: (prev[selectedDate] || []).map(f => f.id === updated.id ? updated : f) }));
+
+  const toggleWater = (i) => {
+    setWater(prev => {
+      const current = prev[selectedDate] || 0;
+      const next = (i + 1) <= current ? i : i + 1;
+      return { ...prev, [selectedDate]: next };
+    });
+  };
+
+  const shiftDate = (dir) => {
+    const d = new Date(selectedDate + 'T12:00:00');
+    d.setDate(d.getDate() + dir);
+    setSelectedDate(dateKey(d));
+  };
+
+  const streak = useMemo(() => {
+    let count = 0;
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    while (true) {
+      const key = dateKey(d);
+      if (logs[key] && logs[key].length > 0) { count++; d.setDate(d.getDate() - 1); }
+      else break;
+    }
+    if (logs[today()] && logs[today()].length > 0) count++;
+    return count;
+  }, [logs]);
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ textAlign: 'center', padding: '16px 0 4px' }}>
+        <h1 style={{ fontSize: 30, fontWeight: 800, background: 'linear-gradient(135deg, var(--gold), var(--crimson))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '3px' }}>
+          The Dark Ledger
+        </h1>
+        {streak > 1 && <div className="streak-badge" style={{ marginTop: 8 }}>🕯️ {streak} day vigil</div>}
+      </div>
+      {(() => { const q = getDailyQuote(); return (
+        <div style={{ textAlign: 'center', padding: '8px 16px 14px', margin: '0 auto' }}>
+          <div className="ornament" style={{ marginBottom: 8 }}>⸻ ✦ ⸻</div>
+          <div style={{ fontSize: 21, fontStyle: 'italic', color: 'var(--text)', lineHeight: 1.6 }}>"{q.text}"</div>
+          <div style={{ fontFamily: 'Cinzel, serif', fontSize: 16, color: 'var(--gold)', letterSpacing: '1.5px', marginTop: 6 }}>— {q.author.toUpperCase()}</div>
+        </div>
+      ); })()}
+
+      {page === 'home' && (
+        <div className="fade-in">
+          <div className="date-nav">
+            <button onClick={() => shiftDate(-1)}>{Icons.left}</button>
+            <span className="date-text">{formatDate(selectedDate)}</span>
+            <button onClick={() => shiftDate(1)} disabled={selectedDate === today()} style={{ opacity: selectedDate === today() ? 0.3 : 1 }}>{Icons.right}</button>
+          </div>
+
+          {/* Ring + Protein */}
+          <div className="card card-glow" style={{ position: 'relative' }}>
+            <CalRing consumed={totals.cal} target={target}/>
+            <hr className="divider"/>
+            <ProteinBar value={totals.protein} max={profile.proteinTarget}/>
+          </div>
+
+          {/* Water */}
+          <div className="card">
+            <WaterTracker glasses={dayWater} target={profile.waterTarget} onToggle={toggleWater}/>
+          </div>
+
+          {/* Food Log */}
+          <div className="flex-between mt-16 mb-12">
+            <h3 className="heading" style={{ fontSize: 19, letterSpacing: '1px' }}>The Day's Chronicle</h3>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+              {Icons.plus} Add
+            </button>
+          </div>
+
+          {dayLog.length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">🕯️</div>
+              <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4, fontFamily: 'Cinzel, serif' }}>The page lies bare</div>
+              <div style={{ fontSize: 17, fontStyle: 'italic' }}>Record thy sustenance to begin the chronicle</div>
+            </div>
+          ) : (
+            dayLog.map(f => (
+              <div key={f.id} className="food-item">
+                <div style={{ flex: 1, minWidth: 0, cursor: 'pointer' }} onClick={() => setEditingFood(f)}>
+                  <div style={{ fontWeight: 700, fontSize: 20 }}>{f.name}</div>
+                  <div style={{ fontSize: 18, color: 'var(--text-dim)', marginTop: 3 }}>
+                    {f.time} · {f.protein || 0}g protein
+                    {f.per100g ? <span style={{ fontStyle: 'italic' }}> (per 100g)</span> : ''}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span style={{ fontWeight: 800, fontSize: 20, color: 'var(--gold)', fontFamily: 'Cinzel, serif' }}>{f.cal}</span>
+                  {f.link && <a href={f.link} target="_blank" rel="noopener" className="link-icon" title="View USDA data">{Icons.link}</a>}
+                  <button onClick={() => setEditingFood(f)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4, display: 'flex' }} title="Edit">{Icons.edit}</button>
+                  <button onClick={() => removeFood(f.id)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 4, display: 'flex' }} title="Remove">{Icons.trash}</button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {page === 'log' && (
+        <div className="slide-up">
+          <h2 className="heading" style={{ fontSize: 24, marginBottom: 16 }}>The Archives</h2>
+          {Object.keys(logs).sort().reverse().filter(k => logs[k].length > 0).length === 0 ? (
+            <div className="empty">
+              <div className="empty-icon">📜</div>
+              <div style={{ fontSize: 20, fontFamily: 'Cinzel, serif' }}>No chronicles yet written</div>
+            </div>
+          ) : (
+            Object.keys(logs).sort().reverse().filter(k => logs[k].length > 0).map(date => {
+              const dl = logs[date];
+              const dt = dl.reduce((a, f) => a + f.cal, 0);
+              const dp = dl.reduce((a, f) => a + (f.protein || 0), 0);
+              const dw = water[date] || 0;
+              const pct = Math.min((dt / target) * 100, 100);
+              return (
+                <div key={date} className="card fade-in" style={{ cursor: 'pointer' }} onClick={() => { setSelectedDate(date); setPage('home'); }}>
+                  <div className="flex-between mb-12">
+                    <span style={{ fontWeight: 600, fontSize: 18, fontFamily: 'Cinzel, serif' }}>{formatDate(date)}</span>
+                    <span style={{ fontWeight: 700, fontFamily: 'Cinzel, serif', color: dt > target ? 'var(--red)' : 'var(--gold)' }}>{dt} / {target}</span>
+                  </div>
+                  <div className="macro-bar" style={{ marginBottom: 8 }}>
+                    <div className="macro-fill" style={{ width: `${pct}%`, background: dt > target ? 'var(--red)' : 'linear-gradient(90deg, var(--crimson), var(--gold-dim))' }}/>
+                  </div>
+                  <div style={{ fontSize: 16, color: 'var(--text-dim)' }}>
+                    {dl.length} item{dl.length !== 1 ? 's' : ''} · {dp}g protein · 💧 {dw}/{profile.waterTarget}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {page === 'settings' && <SettingsPanel profile={profile} setProfile={setProfile}/>}
+
+      {showAdd && <AddFoodModal onClose={() => setShowAdd(false)} onAdd={addFood}/>}
+      {editingFood && <EditFoodModal food={editingFood} onClose={() => setEditingFood(null)} onSave={editFood}/>}
+
+      {/* Bottom Nav */}
+      <nav className="nav">
+        <button className={`nav-item ${page === 'home' ? 'active' : ''}`} onClick={() => setPage('home')}>
+          {Icons.flame}<span>Hearth</span>
+        </button>
+        <button className={`nav-item ${page === 'log' ? 'active' : ''}`} onClick={() => setPage('log')}>
+          {Icons.scroll}<span>Archives</span>
+        </button>
+        <button className={`nav-item ${page === 'settings' ? 'active' : ''}`} onClick={() => setPage('settings')}>
+          {Icons.settings}<span>Council</span>
+        </button>
+      </nav>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+// ─── Parallax Scrolling Background ───
+(function() {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, time = 0;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // Stars
+  const stars = Array.from({ length: 60 }, () => ({
+    x: Math.random() * 2000,
+    y: Math.random() * 0.45,
+    size: Math.random() * 1.5 + 0.5,
+    twinkleSpeed: Math.random() * 0.02 + 0.005,
+    twinkleOffset: Math.random() * Math.PI * 2,
+  }));
+
+  // Mountain layers (parallax)
+  function generateMountains(peaks, minH, maxH, jaggedness) {
+    const points = [];
+    const segW = 2400 / peaks;
+    for (let i = 0; i <= peaks; i++) {
+      const h = minH + Math.random() * (maxH - minH);
+      points.push({ x: i * segW, y: h });
+      if (i < peaks && jaggedness > 0) {
+        const midH = minH + Math.random() * (maxH - minH) * jaggedness;
+        points.push({ x: i * segW + segW * (0.3 + Math.random() * 0.4), y: midH });
+      }
+    }
+    return points;
+  }
+
+  const layer1 = generateMountains(8, 0.25, 0.45, 0.7);  // far mountains
+  const layer2 = generateMountains(12, 0.15, 0.35, 0.8);  // mid mountains
+  const layer3 = generateMountains(16, 0.08, 0.22, 0.6);  // near hills
+
+  // Dead trees (silhouettes on the ground layer)
+  const trees = Array.from({ length: 15 }, () => ({
+    x: Math.random() * 2400,
+    height: 20 + Math.random() * 50,
+    lean: (Math.random() - 0.5) * 0.2,
+    branches: Math.floor(Math.random() * 4) + 2,
+  }));
+
+  // Fog particles
+  const fogParticles = Array.from({ length: 20 }, () => ({
+    x: Math.random() * 2400,
+    y: 0.6 + Math.random() * 0.3,
+    w: 100 + Math.random() * 200,
+    h: 15 + Math.random() * 25,
+    opacity: 0.02 + Math.random() * 0.04,
+    speed: 0.15 + Math.random() * 0.2,
+  }));
+
+  // Ravens
+  const ravens = Array.from({ length: 3 }, () => ({
+    x: Math.random() * W,
+    y: H * (0.15 + Math.random() * 0.25),
+    speed: 0.4 + Math.random() * 0.3,
+    wingPhase: Math.random() * Math.PI * 2,
+    wingSpeed: 0.06 + Math.random() * 0.03,
+    size: 4 + Math.random() * 4,
+  }));
+
+  function drawMountainLayer(points, speed, color, bottomY) {
+    const totalW = 2400;
+    const offset = (time * speed) % totalW;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    for (let pass = -1; pass <= 1; pass++) {
+      const dx = pass * totalW - offset;
+      for (let i = 0; i < points.length; i++) {
+        const px = points[i].x + dx;
+        const py = H - points[i].y * H * bottomY;
+        if (i === 0 && pass === -1) ctx.lineTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+    }
+    ctx.lineTo(W + 10, H);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawTree(t, speed) {
+    const totalW = 2400;
+    const offset = (time * speed) % totalW;
+    let tx = t.x - offset;
+    while (tx < -50) tx += totalW;
+    while (tx > W + 50) tx -= totalW;
+
+    const groundY = H * 0.82;
+    ctx.save();
+    ctx.translate(tx, groundY);
+    ctx.rotate(t.lean);
+    ctx.strokeStyle = '#0d0b14';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -t.height);
+    ctx.stroke();
+    // branches
+    for (let b = 0; b < t.branches; b++) {
+      const by = -(t.height * (0.3 + b * 0.18));
+      const dir = b % 2 === 0 ? 1 : -1;
+      const bLen = 8 + Math.random() * 15;
+      ctx.beginPath();
+      ctx.moveTo(0, by);
+      ctx.lineTo(dir * bLen, by - bLen * 0.6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawRaven(r) {
+    const wingAngle = Math.sin(r.wingPhase) * 0.6;
+    const s = r.size;
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.fillStyle = '#0a0910';
+    // body
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 1.5, s * 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // wings
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.5, 0);
+    ctx.lineTo(-s * 3, -s * wingAngle * 3);
+    ctx.lineTo(-s * 1.5, -s * wingAngle);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(s * 0.5, 0);
+    ctx.lineTo(s * 3, -s * wingAngle * 3);
+    ctx.lineTo(s * 1.5, -s * wingAngle);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function frame() {
+    time += 1;
+    ctx.clearRect(0, 0, W, H);
+
+    // Sky gradient
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
+    skyGrad.addColorStop(0, '#06050a');
+    skyGrad.addColorStop(0.3, '#0a0910');
+    skyGrad.addColorStop(0.7, '#0e0c18');
+    skyGrad.addColorStop(1, '#100e1a');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // Moon
+    const moonX = W * 0.78;
+    const moonY = H * 0.12;
+    const moonGlow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 80);
+    moonGlow.addColorStop(0, 'rgba(196, 162, 101, 0.08)');
+    moonGlow.addColorStop(0.5, 'rgba(196, 162, 101, 0.03)');
+    moonGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = moonGlow;
+    ctx.fillRect(moonX - 80, moonY - 80, 160, 160);
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, 12, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(196, 162, 101, 0.15)';
+    ctx.fill();
+
+    // Stars
+    stars.forEach(s => {
+      const sx = (s.x - (time * 0.05) % 2000 + 2000) % 2000;
+      const mappedX = (sx / 2000) * W;
+      const opacity = 0.3 + 0.4 * Math.sin(time * s.twinkleSpeed + s.twinkleOffset);
+      ctx.beginPath();
+      ctx.arc(mappedX, s.y * H, s.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(196, 172, 131, ${opacity})`;
+      ctx.fill();
+    });
+
+    // Ravens
+    ravens.forEach(r => {
+      r.x -= r.speed;
+      r.wingPhase += r.wingSpeed;
+      if (r.x < -30) { r.x = W + 30 + Math.random() * 100; r.y = H * (0.1 + Math.random() * 0.25); }
+      drawRaven(r);
+    });
+
+    // Mountain layers (back to front, slower to faster)
+    drawMountainLayer(layer1, 0.15, '#0a0914', 0.65);
+    drawMountainLayer(layer2, 0.3, '#0c0b18', 0.75);
+    drawMountainLayer(layer3, 0.6, '#0e0d1a', 0.9);
+
+    // Ground
+    ctx.fillStyle = '#0d0c16';
+    ctx.fillRect(0, H * 0.82, W, H * 0.2);
+
+    // Ground line detail
+    const groundOffset = (time * 0.8) % 2400;
+    ctx.strokeStyle = 'rgba(42, 37, 64, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = -groundOffset % 30; x < W; x += 30) {
+      ctx.moveTo(x, H * 0.82);
+      ctx.lineTo(x + 8, H * 0.82 + 3);
+    }
+    ctx.stroke();
+
+    // Trees
+    trees.forEach(t => drawTree(t, 0.6));
+
+    // Fog
+    fogParticles.forEach(f => {
+      const totalW = 2400;
+      const fx = (f.x - (time * f.speed) % totalW + totalW) % totalW;
+      const mappedX = (fx / totalW) * (W + f.w) - f.w / 2;
+      const fogGrad = ctx.createRadialGradient(mappedX + f.w / 2, f.y * H, 0, mappedX + f.w / 2, f.y * H, f.w / 2);
+      fogGrad.addColorStop(0, `rgba(107, 76, 138, ${f.opacity})`);
+      fogGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = fogGrad;
+      ctx.fillRect(mappedX, f.y * H - f.h, f.w, f.h * 2);
+    });
+
+    // Subtle vignette
+    const vignette = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.9);
+    vignette.addColorStop(0, 'transparent');
+    vignette.addColorStop(1, 'rgba(0, 0, 0, 0.3)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
+
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
